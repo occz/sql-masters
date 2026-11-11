@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}</style>
+<title>SQL Masters</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: two-panel training board — problem + editor on the left, rating rail on the right; stacks on phones */
+:root{
+  --bg:#eef0f4; --surface:#ffffff; --ink:#18203a; --muted:#5d6580; --line:#d6dae5;
+  --accent:#2f4fd8; --accent-ink:#ffffff; --code-bg:#f6f7fb;
+  --win:#1d8a52; --loss:#c23b3b; --warn:#b7791f;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1424; --surface:#171d33; --ink:#e6e9f4; --muted:#949bb5; --line:#2a3250;
+  --accent:#7b93ff; --accent-ink:#0f1424; --code-bg:#11162a;
+  --win:#4cc787; --loss:#ff7b7b; --warn:#e8b34e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1424; --surface:#171d33; --ink:#e6e9f4; --muted:#949bb5; --line:#2a3250;
+  --accent:#7b93ff; --accent-ink:#0f1424; --code-bg:#11162a;
+  --win:#4cc787; --loss:#ff7b7b; --warn:#e8b34e; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,4vw,40px);margin:0;letter-spacing:-.02em;line-height:1}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:4px 0 0;font-size:14px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.label{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.ptop{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.ptitle{font-family:var(--f-display);font-weight:600;font-size:22px;margin:2px 0 0;text-wrap:balance}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:13px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--code-bg);font-variant-numeric:tabular-nums}
+.chip b{color:var(--accent)}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:1px 8px;border-radius:4px}
+.desc{margin:12px 0 0;max-width:68ch}
+.schema{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.schema details{border:1px solid var(--line);border-radius:6px;background:var(--code-bg);font-family:var(--f-mono);font-size:12.5px;min-width:0}
+.schema summary{cursor:pointer;padding:5px 10px;font-weight:600}
+.schema ul{list-style:none;margin:0;padding:0 10px 8px;color:var(--muted)}
+textarea{width:100%;min-height:150px;resize:vertical;font-family:var(--f-mono);font-size:14px;line-height:1.55;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);color:var(--ink);tab-size:2}
+textarea:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+button{font:600 14px var(--f-body);padding:9px 16px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.danger{color:var(--loss)}
+button.danger:hover:not(:disabled){border-color:var(--loss)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.spacer{flex:1}
+.hint{font-size:13px;color:var(--muted)}
+.verdict{border-radius:8px;padding:12px 14px;border:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.verdict.win{border-color:var(--win)} .verdict.loss{border-color:var(--loss)} .verdict.err{border-color:var(--warn)}
+.verdict strong{font-family:var(--f-display);font-size:18px}
+.win-t{color:var(--win)} .loss-t{color:var(--loss)} .warn-t{color:var(--warn)}
+.delta{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:8px;max-height:280px;overflow-y:auto;margin-top:8px}
+table{border-collapse:collapse;font-family:var(--f-mono);font-size:13px;width:100%}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
+th{background:var(--code-bg);position:sticky;top:0;font-weight:600}
+pre.sol{margin:8px 0 0;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--code-bg);font-family:var(--f-mono);font-size:13px;line-height:1.55;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+.rating{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.big{font-family:var(--f-display);font-weight:800;font-size:56px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.tier{font-weight:600;color:var(--accent)}
+svg{display:block;width:100%;height:auto}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.stat{border-top:1px solid var(--line);padding-top:6px}
+.stat div:last-child{font-family:var(--f-mono);font-size:18px;font-variant-numeric:tabular-nums}
+.plist{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;max-height:460px;overflow-y:auto}
+.plist li{border-bottom:1px solid var(--line)}
+.plist li:last-child{border-bottom:0}
+.pbtn{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;padding:8px 4px;border:0;border-radius:4px;background:transparent;text-align:left;font:400 13.5px var(--f-body);color:var(--ink)}
+.pbtn:hover{background:var(--code-bg)}
+.plist .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plist .pe{font-family:var(--f-mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--line)}
+.dot.s{background:var(--win);border-color:var(--win)} .dot.f{background:var(--loss);border-color:var(--loss)}
+.plist li.cur .nm{color:var(--accent);font-weight:600}
+.how{font-size:13.5px;color:var(--muted);margin:8px 0 0}
+.how code{font-family:var(--f-mono);font-size:12.5px;color:var(--ink)}
+.bankctl{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.bankctl input{grid-column:1/-1}
+input[type=search],select{font:400 13.5px var(--f-body);padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--code-bg);color:var(--ink);min-width:0;width:100%}
+input[type=search]:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dbname{align-self:center;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600;padding-right:4px}
+.schema summary .rows{color:var(--muted);font-weight:400;margin-left:4px}
+@media (prefers-reduced-motion:no-preference){.verdict{animation:pop .25s ease-out}@keyframes pop{from{transform:translateY(4px)}to{transform:none}}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>SQL <span>Masters</span></h1>
+      <p class="sub">Adaptive SQL training. Every problem has its own ELO, just like you.</p>
+    </div>
+    <div class="actions" style="margin:0">
+      <button id="btnSave" type="button" title="Download your rating and results as a JSON file">Save progress</button>
+      <button id="btnLoad" type="button" title="Load a progress file you saved before">Load progress</button>
+      <button id="btnReset" type="button">Reset progress</button>
+      <input id="fileLoad" type="file" accept=".json,application/json" hidden>
+    </div>
+  </header>
+  <div id="saveNote" class="panel" hidden style="margin-top:12px"></div>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel" aria-live="polite">
+        <div class="ptop">
+          <div>
+            <div class="label" id="pIdx">Loading problems…</div>
+            <h2 class="ptitle" id="pTitle">&nbsp;</h2>
+          </div>
+          <span class="chip">Problem ELO <b id="pElo">—</b></span>
+        </div>
+        <div class="tags" id="pTags"></div>
+        <p class="desc" id="pDesc"></p>
+        <div class="schema" id="schema"></div>
+      </section>
+
+      <section class="panel">
+        <label class="label" for="sql">Your query</label>
+        <textarea id="sql" spellcheck="false" style="margin-top:6px" placeholder="SELECT …"></textarea>
+        <div class="actions">
+          <button id="btnRun" type="button" disabled>Run (unrated)</button>
+          <button id="btnSubmit" class="primary" type="button" disabled>Submit answer</button>
+          <button id="btnNext" type="button" hidden>Next problem →</button>
+          <span class="spacer"></span>
+          <button id="btnReport" type="button" title="Broken, ambiguous or wrong reference answer? This hides the problem and reverts its rating effect.">Report problem</button>
+          <button id="btnSurrender" class="danger" type="button" disabled>Surrender</button>
+        </div>
+        <div class="hint" style="margin-top:8px" id="kbHint">Ctrl + Enter runs your query. Surrendering counts as a loss.</div>
+      </section>
+
+      <div id="verdict" hidden></div>
+
+      <section class="panel" id="outPanel" hidden>
+        <div class="label" id="outLabel">Result</div>
+        <div class="tablebox" id="out"></div>
+      </section>
+
+      <section class="panel" id="refPanel" hidden>
+        <div class="label">Reference solution</div>
+        <pre class="sol" id="refSql"></pre>
+        <div class="label" style="margin-top:14px">Expected result</div>
+        <div class="tablebox" id="refOut"></div>
+      </section>
+    </div>
+
+    <aside class="col">
+      <section class="panel">
+        <div class="label">Your rating</div>
+        <div class="rating" style="margin-top:6px">
+          <div class="big" id="uElo">1200</div>
+          <div class="tier" id="uTier">Analyst</div>
+        </div>
+        <svg id="spark" viewBox="0 0 280 70" role="img" aria-label="ELO history"></svg>
+        <div class="stats">
+          <div class="stat"><div class="label">Solved</div><div id="sWin">0</div></div>
+          <div class="stat"><div class="label">Failed</div><div id="sLoss">0</div></div>
+          <div class="stat"><div class="label">Peak</div><div id="sPeak">1200</div></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="label">Problem bank</div>
+        <div class="bankctl">
+          <input id="bankQ" type="search" placeholder="Search title, topic or database" aria-label="Search problems" autocomplete="off">
+          <select id="bankBand" aria-label="Filter by rating">
+            <option value="all">All ratings</option>
+            <option value="600-1000">Below 1000</option>
+            <option value="1000-1400">1000 to 1399</option>
+            <option value="1400-1800">1400 to 1799</option>
+            <option value="1800+">1800 and up</option>
+          </select>
+          <select id="bankStatus" aria-label="Filter by status">
+            <option value="all">Any status</option>
+            <option value="new">Not attempted</option>
+            <option value="s">Solved</option>
+            <option value="f">Failed</option>
+          </select>
+        </div>
+        <div class="hint" id="bankCount" style="margin-top:8px"></div>
+        <ul class="plist" id="plist"></ul>
+        <button id="bankMore" type="button" style="width:100%;margin-top:8px" hidden>Show more</button>
+      </section>
+
+      <section class="panel">
+        <div class="label">How it works</div>
+        <p class="how">Like chess tactics, only your <b>first submission</b> counts. Solve it and you gain ELO while the problem loses some. Fail or surrender and it goes the other way. Expected score: <code>E = 1 / (1 + 10^((Rp − Ru)/400))</code>. Your K starts at 64, drops to 40 after 10 rated problems and settles at 32 after 30, so your rating finds your level quickly (it shows as provisional until then). The problem's K is 16. The next problem is picked close to your rating, varying topic and database. You can also search the bank and pick any problem from the bank; one you already attempted is practice and does not change any rating.</p>
+        <p class="how" style="margin-top:8px">If a problem looks wrong or unclear, use “Report problem”: it is hidden for you and its rating effect is undone. Part of the bank is adapted from the <a href="https://huggingface.co/datasets/gretelai/synthetic_text_to_sql" target="_blank" rel="noopener">gretelai/synthetic_text_to_sql</a> dataset (Apache License 2.0), filtered and reviewed automatically.</p>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-asm.js"></script>
+<script>
+const KEY='sqlmasters.v3', OLD_KEY='sqlmasters.v2';
+const K_PROB=16, PAGE=60;
+// provisional rating: bigger steps for a new player so the rating finds their level fast (as chess federations do)
+const kUser=()=>{const n=state.win+state.loss;return n<10?64:n<30?40:32};
+let SQLJS, DATA, P=[], snap=null, DL=null, dbs={}, state, cur, attempted=false, rated=true;
+const view={q:'',band:'all',status:'all',shown:PAGE};
+
+function fresh(){return {elo:1200,hist:[1200],win:0,loss:0,peak:1200,probs:{},recent:[],recentK:[],hidden:{}}}
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.probs){s.hidden=s.hidden||{};return s}}catch(e){}
+  // keep the rating and results of the previous version of the page
+  try{const o=JSON.parse(localStorage.getItem(OLD_KEY));if(o&&o.probs){const probs={};for(const [id,v] of Object.entries(o.probs))if(v.res)probs[id]=v;
+    return {elo:o.elo,hist:o.hist||[o.elo],win:o.win||0,loss:o.loss||0,peak:o.peak||o.elo,probs,recent:[],recentK:[]}}}catch(e){}
+  return fresh();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+// problem state is stored only for problems that were attempted; the rest use their base ELO
+const ps=p=>state.probs[p.id]||{elo:p.elo,res:null};
+
+const expected=(ru,rp)=>1/(1+Math.pow(10,(rp-ru)/400));
+function tier(r){return r<1000?'Apprentice':r<1200?'Junior':r<1400?'Analyst':r<1600?'Senior':r<1800?'Expert':'SQL Master'}
+
+function pickNext(){
+  // matchmaking: closest problem rating to the user's, prefer unattempted, vary topic and database
+  const lastSc=cur?cur.sc:null;let best=null,bs=Infinity;
+  for(const p of P){
+    if(state.recent.includes(p.id)||state.hidden[p.id])continue;
+    const s=ps(p);
+    const score=Math.abs(s.elo-state.elo)+(s.res==='s'?500:s.res==='f'?150:0)+(state.recentK.includes(p.k)?90:0)+(p.sc===lastSc?40:0)+Math.random()*110;
+    if(score<bs){bs=score;best=p}
+  }
+  return best||P[0];
+}
+
+function dbFor(sc){
+  if(!dbs[sc]){
+    const keys=Object.keys(dbs);if(keys.length>=6){const old=keys.find(k=>!(cur&&cur.sc===k))||keys[0];try{dbs[old].close()}catch(e){}delete dbs[old]}
+    const d=new SQLJS.Database();d.run(DATA.schemas[sc].sql);dbs[sc]=d}
+  return dbs[sc];
+}
+function run(sql,sc){
+  const res=dbFor(sc||cur.sc).exec(sql);
+  const r=res[res.length-1];
+  return r?{cols:r.columns,rows:r.values}:{cols:[],rows:[]};
+}
+function norm(v){if(typeof v==='number')return Math.round(v*100)/100;return v===null?'∅':String(v)}
+function same(a,b,ordered){
+  if(a.cols.length!==b.cols.length||a.rows.length!==b.rows.length)return false;
+  let A=a.rows.map(r=>JSON.stringify(r.map(norm))),B=b.rows.map(r=>JSON.stringify(r.map(norm)));
+  if(!ordered){A.sort();B.sort()}
+  return A.every((x,i)=>x===B[i]);
+}
+
+const $=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+function tableHtml(r){
+  if(!r.cols.length)return '<p class="hint" style="padding:10px;margin:0">The query returned no rows.</p>';
+  return '<table><thead><tr>'+r.cols.map(c=>`<th>${esc(c)}</th>`).join('')+'</tr></thead><tbody>'+
+    r.rows.slice(0,200).map(row=>'<tr>'+row.map(v=>`<td>${v===null?'<span class="hint">NULL</span>':esc(norm(v))}</td>`).join('')+'</tr>').join('')+'</tbody></table>';
+}
+function renderTable(r,label){$('outPanel').hidden=false;$('outLabel').textContent=label;$('out').innerHTML=tableHtml(r)}
+function showReference(){
+  $('refPanel').hidden=false;$('refSql').textContent=cur.s;$('refOut').innerHTML=tableHtml(run(cur.s));
+}
+function verdict(kind,title,body){
+  const v=$('verdict');v.hidden=false;v.className='panel verdict '+kind;
+  v.innerHTML=`<strong class="${kind==='win'?'win-t':kind==='loss'?'loss-t':'warn-t'}">${title}</strong><span>${body}</span>`;
+}
+
+function renderSchema(sc){
+  const db=dbFor(sc);
+  const tables=db.exec("SELECT name FROM sqlite_master WHERE type='table'")[0].values.map(r=>r[0]);
+  $('schema').innerHTML=`<span class="dbname">${esc(DATA.schemas[sc].title)} database</span>`+tables.map(t=>{
+    const n=db.exec(`SELECT COUNT(*) FROM "${t}"`)[0].values[0][0];
+    const cols=db.exec(`PRAGMA table_info("${t}")`)[0].values.map(c=>`<li>${esc(c[1])} <span>${esc(c[2]||'')}</span></li>`).join('');
+    return `<details><summary>${t} <span class="rows">${n} rows</span></summary><ul>${cols}</ul></details>`}).join('');
+}
+
+/* ---------- problem bank ---------- */
+const BANDS={'600-1000':[0,1000],'1000-1400':[1000,1400],'1400-1800':[1400,1800],'1800+':[1800,9999]};
+function inView(p){
+  const s=ps(p);
+  if(state.hidden[p.id])return false;
+  if(view.band!=='all'){const [lo,hi]=BANDS[view.band];if(s.elo<lo||s.elo>=hi)return false}
+  if(view.status==='new'&&s.res)return false;
+  if(view.status==='s'&&s.res!=='s')return false;
+  if(view.status==='f'&&s.res!=='f')return false;
+  const q=view.q.trim().toLowerCase();
+  if(q&&!(p.t.toLowerCase().includes(q)||p.tags.join(' ').toLowerCase().includes(q)||DATA.schemas[p.sc].title.toLowerCase().includes(q)))return false;
+  return true;
+}
+function renderBank(){
+  const all=P.filter(inView).sort((a,b)=>ps(a).elo-ps(b).elo||(a.id<b.id?-1:1));
+  const att=Object.values(state.probs).filter(v=>v.res).length;
+  $('bankCount').textContent=`${all.length.toLocaleString()} listed · ${att.toLocaleString()} of ${P.length.toLocaleString()} attempted`;
+  $('plist').innerHTML=all.slice(0,view.shown).map(p=>{const s=ps(p),on=cur&&cur.id===p.id;
+    return `<li class="${on?'cur':''}"><button type="button" class="pbtn" data-id="${p.id}" title="${esc(p.t+' · '+DATA.schemas[p.sc].title)}"${on?' aria-current="true"':''}><span class="dot ${s.res||''}" title="${s.res==='s'?'Solved':s.res==='f'?'Failed':'Not attempted'}"></span><span class="nm">${esc(p.t)}</span><span class="pe">${Math.round(s.elo)}</span></button></li>`}).join('')||'<li class="hint" style="padding:10px 4px">No problems match these filters.</li>';
+  const left=all.length-view.shown;
+  $('bankMore').hidden=left<=0;$('bankMore').textContent=`Show ${Math.min(PAGE,left)} more`;
+}
+
+function renderSide(){
+  $('uElo').textContent=Math.round(state.elo);$('uTier').textContent=tier(state.elo)+(state.win+state.loss<30?' · provisional':'');
+  $('sWin').textContent=state.win;$('sLoss').textContent=state.loss;$('sPeak').textContent=Math.round(state.peak);
+  const h=state.hist.slice(-30),mn=Math.min(...h)-20,mx=Math.max(...h)+20,W=280,H=70,P_=6;
+  const x=i=>P_+(h.length<2?0:i*(W-2*P_)/(h.length-1)),y=v=>H-P_-(v-mn)*(H-2*P_)/(mx-mn);
+  const pts=h.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const last=h.length-1;
+  $('spark').innerHTML=`<line x1="${P_}" x2="${W-P_}" y1="${y(1200)}" y2="${y(1200)}" stroke="var(--line)" stroke-dasharray="3 3"/>
+   <polygon points="${x(0)},${H-P_} ${pts} ${x(last)},${H-P_}" fill="var(--accent)" fill-opacity=".12"/>
+   <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+   <circle cx="${x(last)}" cy="${y(h[last])}" r="3.5" fill="var(--accent)"/>`;
+  renderBank();
+}
+
+function show(p,manual){
+  cur=p;attempted=false;rated=!manual||ps(p).res===null;
+  $('pIdx').textContent=`${DATA.schemas[p.sc].title} database · problem ${(P.indexOf(p)+1).toLocaleString()} of ${P.length.toLocaleString()}`+(p.ord?' · row order matters':'')+(rated?'':' · practice, unrated');
+  $('pTitle').textContent=p.t;$('pElo').textContent=Math.round(ps(p).elo);
+  $('pTags').innerHTML=p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+  $('pDesc').textContent=p.d;
+  renderSchema(p.sc);
+  $('sql').value='';$('verdict').hidden=true;$('outPanel').hidden=true;$('refPanel').hidden=true;
+  $('btnSubmit').disabled=false;$('btnSurrender').disabled=false;$('btnNext').hidden=true;
+  renderSide();
+  if(manual)$('pIdx').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// Applies the ELO update for the first rated outcome of the current problem
+function settle(ok){
+  $('btnSubmit').disabled=true;$('btnSurrender').disabled=true;$('btnNext').hidden=false;attempted=true;
+  if(!rated)return '<span class="hint">Practice attempt, so your ELO and the problem ELO stay the same.</span>';
+  const pr=ps(cur),E=expected(state.elo,pr.elo),S=ok?1:0;
+  snap={id:cur.id,state:JSON.parse(JSON.stringify(state)),had:!!state.probs[cur.id]};
+  const K=kUser(),du=K*(S-E),dp=K_PROB*((1-S)-(1-E));
+  state.elo+=du;pr.elo+=dp;pr.res=ok?'s':'f';state.probs[cur.id]=pr;
+  ok?state.win++:state.loss++;
+  state.peak=Math.max(state.peak,state.elo);state.hist.push(Math.round(state.elo));
+  state.recent=[cur.id,...state.recent.filter(x=>x!==cur.id)].slice(0,10);
+  state.recentK=[cur.k,...state.recentK].slice(0,3);
+  save();
+  $('pElo').textContent=Math.round(pr.elo);
+  renderSide();
+  const sg=v=>(v>=0?'+':'')+Math.round(v);
+  return `<span class="delta">You ${sg(du)} → ${Math.round(state.elo)}</span><span class="delta">Problem ${sg(dp)} → ${Math.round(pr.elo)}</span><span class="hint">Expected win chance: ${Math.round(E*100)}% · your K: ${K}</span>`;
+}
+
+function onRun(){
+  const q=$('sql').value.trim();if(!q)return;
+  try{renderTable(run(q),'Preview (unrated)');if(!attempted)$('verdict').hidden=true}
+  catch(e){verdict('err','Syntax error',esc(e.message));$('outPanel').hidden=true}
+}
+
+function onSubmit(){
+  const q=$('sql').value.trim();if(!q||attempted)return;
+  let mine;
+  try{mine=run(q)}catch(e){verdict('err','Syntax error',esc(e.message)+'. Fix it: syntax errors do not count as an attempt.');return}
+  const ok=same(mine,run(cur.s),cur.ord);
+  const info=settle(ok);
+  verdict(ok?'win':'loss',ok?'Correct!':'Incorrect',info);
+  renderTable(mine,ok?'Your result':'Your result (does not match)');
+  if(!ok)showReference();
+}
+
+/* ---------- save / load progress ---------- */
+function note(html,kind){const n=$('saveNote');n.hidden=false;n.className='panel verdict '+(kind||'warn');n.innerHTML=html}
+function exportJson(){return JSON.stringify({app:'sql-masters',version:1,savedAt:new Date().toISOString(),state},null,1)}
+async function onSaveFile(){
+  const data=exportJson(),name='sql-masters-progress-'+new Date().toISOString().slice(0,10)+'.json';
+  if(DL){
+    try{await DL.save({filename:name,data});note('<strong class="win-t">Progress saved</strong><span>Keep the file safe. Use “Load progress” to restore it, even on another device.</span>','win');return}
+    catch(e){if(e&&e.code==='declined')return}
+  }
+  // on a normal website (outside the claude.ai viewer) a plain browser download works
+  if(!window.claude){
+    try{const u=URL.createObjectURL(new Blob([data],{type:'application/json'})),l=document.createElement('a');l.href=u;l.download=name;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
+      note('<strong class="win-t">Progress saved</strong><span>Check your downloads folder. Use “Load progress” to restore it, even on another device.</span>','win');return}catch(e){}
+  }
+  // fallback when the page cannot offer a download: show the JSON to copy by hand
+  note('<strong class="warn-t">Copy your progress</strong><span>Downloads are not available here. Copy this text into a .json file and keep it.</span><textarea id="saveText" readonly spellcheck="false" style="width:100%;min-height:120px;margin-top:8px;font:12px/1.4 var(--mono,monospace)"></textarea><span><button id="btnCopy" type="button">Copy to clipboard</button></span>');
+  const t=$('saveText');t.value=data;t.onfocus=()=>t.select();
+  $('btnCopy').onclick=async()=>{try{await navigator.clipboard.writeText(data);$('btnCopy').textContent='Copied'}catch(e){t.focus();t.select()}};
+}
+function validState(o){
+  if(!o||o.app!=='sql-masters'||!o.state)return null;const s=o.state;
+  if(typeof s.elo!=='number'||!isFinite(s.elo)||!s.probs||typeof s.probs!=='object'||!Array.isArray(s.hist))return null;
+  const probs={};for(const [id,v] of Object.entries(s.probs))if(v&&typeof v.elo==='number'&&(v.res==='s'||v.res==='f'||v.res===null))probs[id]={elo:v.elo,res:v.res};
+  return {elo:s.elo,hist:s.hist.filter(x=>typeof x==='number').slice(-300),win:s.win|0,loss:s.loss|0,peak:typeof s.peak==='number'?s.peak:s.elo,probs,
+    recent:Array.isArray(s.recent)?s.recent.slice(0,10):[],recentK:Array.isArray(s.recentK)?s.recentK.slice(0,3):[],hidden:s.hidden&&typeof s.hidden==='object'?s.hidden:{}};
+}
+function onLoadFile(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onerror=()=>note('<strong class="loss-t">Could not read the file</strong><span>Try again with the .json file you saved from this page.</span>','err');
+  r.onload=()=>{
+    let ns=null;try{ns=validState(JSON.parse(r.result))}catch(e){}
+    if(!ns||!ns.hist.length){note('<strong class="loss-t">That file is not a SQL Masters progress file</strong><span>Nothing was changed.</span>','err');return}
+    state=ns;save();show(pickNext());
+    const done=Object.values(ns.probs).filter(v=>v.res).length;
+    note(`<strong class="win-t">Progress loaded</strong><span>Rating ${Math.round(ns.elo)} · ${ns.win} solved · ${ns.loss} failed · ${done} problems with results.</span>`,'win');
+  };
+  r.readAsText(file);
+}
+
+function onReport(){
+  if(!cur)return;
+  // undo this problem's rating effect (if it was rated just now) and hide it for good
+  if(snap&&snap.id===cur.id){const h=state.hidden;state=snap.state;state.hidden=h}
+  if(state.probs[cur.id]&&!(snap&&snap.id===cur.id&&snap.had))delete state.probs[cur.id];
+  state.hidden[cur.id]=1;snap=null;save();show(pickNext());
+  verdict('warn','Problem reported','Thanks. It is hidden from now on, and if it had changed your rating that change was reverted.');
+}
+
+function onSurrender(){
+  if(attempted)return;
+  const info=settle(false);
+  verdict('loss','You surrendered',info);
+  $('outPanel').hidden=true;
+  showReference();
+}
+
+function init(){
+  P=DATA.problems;state=load();if(!state.hidden)state.hidden={};if(!state.recent)state.recent=[];if(!state.recentK)state.recentK=[];
+  $('btnRun').disabled=false;
+  $('btnRun').onclick=onRun;$('btnSubmit').onclick=onSubmit;$('btnSurrender').onclick=onSurrender;$('btnReport').onclick=onReport;
+  $('btnSave').onclick=onSaveFile;$('btnLoad').onclick=()=>$('fileLoad').click();$('fileLoad').onchange=e=>{onLoadFile(e.target.files[0]);e.target.value=''};
+  $('btnNext').onclick=()=>show(pickNext());
+  $('plist').addEventListener('click',e=>{const b=e.target.closest('.pbtn');if(!b)return;const p=P.find(x=>x.id===b.dataset.id);if(p&&(!cur||p.id!==cur.id))show(p,true)});
+  const refresh=()=>{view.shown=PAGE;renderBank()};
+  $('bankQ').addEventListener('input',e=>{view.q=e.target.value;refresh()});
+  $('bankBand').addEventListener('change',e=>{view.band=e.target.value;refresh()});
+  $('bankStatus').addEventListener('change',e=>{view.status=e.target.value;refresh()});
+  $('bankMore').onclick=()=>{view.shown+=PAGE;renderBank()};
+  $('sql').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();onRun()}
+    if(e.key==='Tab'){e.preventDefault();const t=e.target,s=t.selectionStart;t.setRangeText('  ',s,t.selectionEnd,'end')}});
+  $('btnReset').onclick=function(){if(this.dataset.confirm){state=fresh();save();show(pickNext());this.textContent='Reset progress';delete this.dataset.confirm}else{this.textContent='Sure? Click again';this.dataset.confirm=1;setTimeout(()=>{this.textContent='Reset progress';delete this.dataset.confirm},3000)}};
+  show(pickNext());
+}
+
+async function boot(){
+  try{
+    if(typeof initSqlJs!=='function')throw new Error('the SQL engine did not load, reload the page');
+    const [SQL,res,gres]=await Promise.all([initSqlJs(),fetch('problems.json'),fetch('gretel.json').catch(()=>null)]);
+    if(!res.ok)throw new Error('problems.json answered '+res.status);
+    SQLJS=SQL;DATA=await res.json();
+    try{if(gres&&gres.ok){const g=await gres.json();Object.assign(DATA.schemas,g.schemas);DATA.problems=DATA.problems.concat(g.problems)}}catch(e){}
+    init();
+    // optional: lights up the real download when the viewer offers it; never blocks the start
+    try{Promise.resolve(window.claude&&claude.use('downloads')).then(d=>{DL=d||null}).catch(()=>{})}catch(e){}
+  }catch(e){$('pIdx').textContent='Could not start: '+e.message}
+}
+boot();
+</script>
+
+</body>
+</html>
